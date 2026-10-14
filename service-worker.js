@@ -1,6 +1,6 @@
-// Nazmul Poultry Farm - offline service worker
-// App update dile CACHE_NAME-er number bariye dao (v3-1 -> v3-2)
-const CACHE_NAME = "nazmul-poultry-v1";
+// Nazmul Poultry Farm V3 - offline service worker
+// App update dile CACHE_NAME-er number bariye dao (v3-8 -> v3-9)
+const CACHE_NAME = "nazmul-poultry-v3-23";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
@@ -12,20 +12,18 @@ const FILES_TO_CACHE = [
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      Promise.all(FILES_TO_CACHE.map((f) => cache.add(f).catch(() => {})))
-    )
+    caches.open(CACHE_NAME)
+      .then((cache) => Promise.all(FILES_TO_CACHE.map((f) => cache.add(f).catch(() => {}))))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (e) => {
@@ -44,7 +42,7 @@ self.addEventListener("fetch", (e) => {
             caches.open(CACHE_NAME).then((c) => c.put(req, copy));
           }
           return res;
-        }).catch(() => cached);
+        });
       })
     );
     return;
@@ -63,7 +61,9 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() =>
-        caches.match(req).then((c) => c || caches.match("./index.html") || caches.match("./"))
+        caches.match(req, { ignoreSearch: true })
+          .then((c) => c || caches.match("./index.html"))
+          .then((c) => c || caches.match("./"))
       )
   );
 });
