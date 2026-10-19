@@ -1,19 +1,16 @@
 {
-  "id": "./",
   "name": "নাজমুল পোল্ট্রি ফার্ম",
-  "short_name": "Nazmul Poultry",
-  "description": "নাজমুল পোল্ট্রি ফার্ম - সম্পূর্ণ হিসাব-নিকাশ অ্যাপ",
-  "lang": "bn",
+  "short_name": "নাজমুল ফার্ম",
+  "description": "নাজমুল পোল্ট্রি ফার্ম - খামার ব্যবস্থাপনা",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
   "orientation": "portrait",
-  "background_color": "#0f1923",
+  "background_color": "#0a4a2f",
   "theme_color": "#0a4a2f",
+  "lang": "bn",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ]
 }
