@@ -1545,6 +1545,7 @@ function lastSaleRate(){let r=(state.sales||[]).filter(x=>+x.rate>0).slice(-1)[0
 function costSoFar(){return (+state.chicks||0)*(+state.chickPrice||0)+total("feed")+total("medicine")+workersTotal()+total("other")+total("litter")+total("power")+rentTotal()}
 const tk=n=>"৳"+fb(n,0);
 function renderProj(){
+ try{syncShared()}catch(e){}
  let el=$a("anProj");if(!el)return;
  let fi=feedInfo(),age=days(),live=livePcs();
  let rate=+state.projRate||lastSaleRate(),frate=+state.projFeedRate||fi.ratePerKg;
@@ -1578,8 +1579,10 @@ function renderProj(){
 }
 window.anSaveSet=function(){
  let b=+$a("anBagKg").value;if(b>0)state.feedBagKg=b;
- let fp=$a("anFeedKg");if(fp)state.feedKgPrice=+fp.value||0;try{renderDashPerBird()}catch(e){}
- state.projRate=+$a("anRate").value||0;state.projFeedRate=+$a("anFeedRate").value||0;
+ {let f1=$a("anFeedKg"),f2=$a("anFeedRate"),ae=document.activeElement,v=(ae===f2?+f2.value:(f1?+f1.value:+f2.value))||0;
+  state.feedKgPrice=v;state.projFeedRate=v;if(f1&&ae!==f1)f1.value=v||"";if(f2&&ae!==f2)f2.value=v||""}
+ try{renderDashPerBird()}catch(e){}
+ state.projRate=+$a("anRate").value||0;
  save();renderStock();renderProj();
 };
 
@@ -1866,7 +1869,7 @@ function renderAnGraphs(id){
  ds.forEach((d,i)=>{cc+=cost[i];ci+=inc[i];cd+=dead[i];net.push(ci-cc);mort.push((+state.chicks>0)?cd/state.chicks*100:0)});
  tc=cc;ti=ci;
  const tk2=v=>(v<0?"−":"")+"৳"+fb(Math.abs(v),0),xl=d=>bn(d.slice(8))+"/"+bn(d.slice(5,7));
- let h='<div class="dzc-grp"><div class="dzc-t">💵 আয় বনাম খরচ <span>এখন পর্যন্ত</span></div>'+hbars([{t:"খরচ",v:tc,c:"#fbbf24",s:tk2(tc)},{t:"আয়",v:ti,c:"#3ddc84",s:tk2(ti)},{t:ti>=tc?"লাভ":"ক্ষতি",v:ti-tc,c:ti>=tc?"#3ddc84":"#ff7070",s:tk2(ti-tc)}])+'</div>';
+ let h=id==="dbTS"?"":'<div class="dzc-grp"><div class="dzc-t">💵 আয় বনাম খরচ <span>এখন পর্যন্ত</span></div>'+hbars([{t:"খরচ",v:tc,c:"#fbbf24",s:tk2(tc)},{t:"আয়",v:ti,c:"#3ddc84",s:tk2(ti)},{t:ti>=tc?"লাভ":"ক্ষতি",v:ti-tc,c:ti>=tc?"#3ddc84":"#ff7070",s:tk2(ti-tc)}])+'</div>';
  if(nd>1){
   h+='<div class="dzc-grp"><div class="dzc-t">📈 জমা লাভ-লোকসান <span>দিন ধরে (০ রেখার নিচে = ক্ষতি)</span></div>'+lineSvg(ds,net,{fmt:tk2,xl:xl,label:"জমা লাভ-লোকসান"})+'</div>';
   h+='<div class="dzc-grp"><div class="dzc-t">☠️ জমা মৃত্যুহার <span>% • হলুদ রেখা = '+(+state.goalMort>0?"আপনার লক্ষ্য":"সাধারণ সীমা ৫%")+'</span></div>'+lineSvg(ds,mort,{fmt:v=>fb(v,1)+"%",xl:xl,ref:(+state.goalMort>0?+state.goalMort:5),refl:"সীমা",color:mort[mort.length-1]>((+state.goalMort>0)?+state.goalMort:5)?"#ff7070":"#e0a75a",label:"জমা মৃত্যুহার"})+'</div>';
@@ -1902,6 +1905,7 @@ function renderDashRings(){
  }
  try{h+=renderDashExtra()}catch(e){console.error(e)}
  el.innerHTML=h;
+ {let t=document.createElement("div");t.id="dbTS";el.appendChild(t);try{renderAnGraphs("dbTS")}catch(e){console.error(e)}}
 }
 
 // ── প্রতি মুরগির খরচ (ড্যাশবোর্ড) ──
@@ -1919,13 +1923,104 @@ function renderDashPerBird(){
  let v=$a("kPerBird");if(!v)return;
  let c=perBirdCalc();
  v.textContent=(c.chicks>0&&c.per!==null)?"৳"+fb(c.per,0):"—";
- let s=$a("kPerBirdS");if(s)s.textContent=c.chicks>0?("ফিড ৳"+fb(c.price,0)+((+state.feedKgPrice>0)?"":" (গড়)")+" • চাপুন"):"বাচ্চার তথ্য দিন";
+ let s=$a("kPerBirdS");try{renderLcTiles()}catch(e){}if(s)s.textContent=c.chicks>0?("ফিড ৳"+fb(c.price,0)+((+state.feedKgPrice>0)?"":" (গড়)")+" • চাপুন"):"বাচ্চার তথ্য দিন";
 }
 window.openGraphs=function(){let m=$a("grModal");if(!m)return;try{renderDashRings()}catch(e){console.error(e)}m.classList.add("show");let b=$a("grBody");if(b)b.scrollTop=0};
 window.closeGraphs=function(){let m=$a("grModal");if(m)m.classList.remove("show")};
 window.openFeedPrice=function(){let m=$a("fpModal"),i=$a("fpInput");if(!m)return;i.value=+state.feedKgPrice||"";m.classList.add("show");setTimeout(()=>i.focus(),80)};
 window.closeFeedPrice=function(){let m=$a("fpModal");if(m)m.classList.remove("show")};
-window.saveFeedPrice=function(){let v=+$a("fpInput").value;state.feedKgPrice=v>0?v:0;save();closeFeedPrice();try{renderDashPerBird();renderAnalysis()}catch(e){console.error(e)};showToast("✅ ফিডের দাম সেভ হয়েছে")};
+window.saveFeedPrice=function(){let v=+$a("fpInput").value;state.feedKgPrice=v>0?v:0;state.projFeedRate=state.feedKgPrice;save();closeFeedPrice();try{renderDashPerBird();renderAnalysis()}catch(e){console.error(e)};showToast("✅ ফিডের দাম সেভ হয়েছে")};
+
+// ── লাভ ক্ষতি সারাংশ (ড্যাশবোর্ড) ──
+function lcCalc(){
+ let bs=batchSummary(state),pb=perBirdCalc(),w0=anW0(),ha=avgBreak();
+ let price=+state.projRate||lastSaleRate(),aw=+state.liveAvgWt||0;
+ return{cost:bs.cost,alive:pb.alive,chicks:pb.chicks,price:price,aw:aw,w0:w0.w,w0src:w0.src,harv:ha.w,live:livePcs(),
+  inc:salesTotal()+otherSalesGrand(),need:price>0?bs.cost/price:0,perNeed:(price>0&&pb.alive>0)?bs.cost/pb.alive/price:0,costPer:pb.alive>0?bs.cost/pb.alive:0};
+}
+function syncShared(){
+ let a=+state.feedKgPrice,b=+state.projFeedRate;
+ if(a>0&&!(b>0))state.projFeedRate=a;else if(b>0&&!(a>0))state.feedKgPrice=b;
+ let ae=document.activeElement,sr=$a("salesRate"),r=+state.projRate||lastSaleRate();
+ if(sr&&ae!==sr&&!sr.value&&r>0)sr.value=r;
+ let bk=$a("dfBagKg");if(bk&&ae!==bk&&bk.value==="50"&&+state.feedBagKg>0&&+state.feedBagKg!==50)bk.value=state.feedBagKg;
+}
+function renderLcTiles(){
+ try{syncShared()}catch(e){}
+ if(!$a("lcV1"))return;
+ let c=lcCalc(),set=(i,v,s)=>{$a("lcV"+i).textContent=v;$a("lcS"+i).textContent=s};
+ set(1,c.price>0?fb(c.need,0)+" কেজি":"—",c.price>0?"দর ৳"+fb(c.price,0)+"/কেজি":"দর দিতে চাপুন");
+ let aw=c.aw>0?c.aw:c.w0;
+ set(2,c.alive>0?fb(c.alive*aw,0)+" কেজি":"—",c.alive>0?"গড় "+fb(aw,2)+" কেজি":"বাচ্চার তথ্য দিন");
+ let tk=c.harv+c.live*c.w0,be=tk>0?c.cost/tk:0;
+ set(4,be>0?"৳"+fb(be,0)+"/কেজি":"—",be>0?"গড় "+fb(c.w0,2)+" কেজি ধরে":"ওজনের তথ্য নেই");
+ let r5=lcP5(c);
+ set(5,r5?(r5.net>=0?"+৳":"−৳")+fb(Math.abs(r5.net),0):"—",r5?(r5.net>=0?"লাভ":"ক্ষতি")+" • দর ৳"+fb(c.price,0):"দর দিতে চাপুন");
+ set(3,c.price>0&&c.alive>0?fb(c.perNeed,2)+" কেজি":"—",c.price>0?"দর ৳"+fb(c.price,0)+"/কেজি":"দর দিতে চাপুন");
+}
+function lcP5(c,p){
+ p=p||c.price;let aw=c.aw>0?c.aw:c.w0;if(!(p>0)||!(c.chicks>0))return null;
+ let rev=c.live*aw*p,tot=c.inc+rev,net=tot-c.cost;
+ return{aw:aw,p:p,rev:rev,tot:tot,net:net,per:c.alive>0?net/c.alive:0};
+}
+function lcRow(l,v){return '<div class="lc-row"><span>'+l+'</span><b>'+v+'</b></div>'}
+function lcBody(){
+ let k=window._lcK,c=lcCalc(),h="",inP='<label class="lc-in">বিক্রির দর (৳/কেজি)<input id="lcPrice" type="number" min="0" step=".01" inputmode="decimal" placeholder="যেমন: 160" value="'+(c.price||"")+'" oninput="lcSet()"></label>';
+ if(k===1){
+  let cur=c.harv+c.live*c.w0,diff=cur-c.need;
+  h=inP+'<div id="lcRes">'+(c.price>0?
+   lcRow("সর্বমোট খরচ",money(c.cost))+lcRow("বসানো দর","৳"+fb(c.price,2)+"/কেজি")+
+   '<div class="lc-big"><span>খরচ তুলতে মোট লাগবে</span><b>'+fb(c.need,0)+' কেজি</b></div>'+
+   lcRow("শেষ গড় ওজন ("+fb(c.w0,2)+" কেজি) ধরে এখনকার মোট",fb(cur,0)+" কেজি")+
+   lcRow(diff>=0?"✅ খরচের চেয়ে বেশি":"⏳ আরও লাগবে",fb(Math.abs(diff),0)+" কেজি")+
+   '<div style="font-size:11.5px;opacity:.65;margin-top:6px">এখনকার মোট = বিক্রি হওয়া ওজন '+fb(c.harv,0)+' + খামারের '+fb(c.live,0)+' টি × '+fb(c.w0,2)+'</div>'
+   :'<div class="hint">উপরে দর লিখুন</div>')+'</div>';
+ }else if(k===2){
+  let aw=c.aw>0?c.aw:c.w0;
+  h='<label class="lc-in">গড় ওজন (কেজি/মুরগি)<input id="lcAw" type="number" min="0" step=".01" inputmode="decimal" value="'+(Math.round(aw*100)/100)+'" oninput="lcSet()"></label><div id="lcRes">'+
+   lcRow("মোট বাচ্চা",fb(c.chicks,0)+" টি")+lcRow("জীবিত মুরগি",fb(c.alive,0)+" টি")+
+   '<div class="lc-big"><span>মোট জীবিত মুরগির ওজন হবে</span><b id="lcR2">'+fb(c.alive*aw,0)+' কেজি</b></div>'+
+   '<div style="font-size:11.5px;opacity:.65;margin-top:6px">শেষ গড় ওজন (বিশ্লেষণ থেকে): '+fb(c.w0,2)+' কেজি — '+c.w0src+'</div></div>';
+ }else if(k===3){
+  h=inP+'<div id="lcRes">'+(c.price>0&&c.alive>0?
+   lcRow("সর্বমোট খরচ",money(c.cost))+lcRow("জীবিত মুরগি",fb(c.alive,0)+" টি")+lcRow("প্রতি মুরগির খরচ","৳"+fb(c.costPer,2))+
+   '<div class="lc-big'+(c.w0>=c.perNeed?'':' bad')+'"><span>প্রতি মুরগি এত কেজি হলে খরচ উঠবে</span><b>'+fb(c.perNeed,2)+' কেজি</b></div>'+
+   lcRow("শেষ গড় ওজন",fb(c.w0,2)+" কেজি")+
+   lcRow(c.w0>=c.perNeed?"✅ খরচ উঠে গেছে":"⏳ আরও লাগবে",fb(Math.abs(c.w0-c.perNeed),2)+" কেজি/মুরগি")
+   :'<div class="hint">'+(c.alive>0?'উপরে দর লিখুন':'আগে বাচ্চার তথ্য দিন')+'</div>')+'</div>';
+ }else if(k===4){
+  let tk=c.harv+c.live*c.w0,be=tk>0?c.cost/tk:0;
+  h='<div id="lcRes">'+(be>0?
+   lcRow("সর্বমোট খরচ",money(c.cost))+lcRow("বিক্রি হওয়া ওজন",fb(c.harv,0)+" কেজি")+
+   lcRow("খামারের "+fb(c.live,0)+" টি × "+fb(c.w0,2)+" কেজি",fb(c.live*c.w0,0)+" কেজি")+lcRow("মোট ওজন",fb(tk,0)+" কেজি")+
+   '<div class="lc-big"><span>খরচ তুলতে গড়ে সর্বনিম্ন দর</span><b>৳'+fb(be,2)+' /কেজি</b></div>'+
+   '<div style="font-size:11.5px;opacity:.65;margin-top:6px">এর কম দরে বেচলে ক্ষতি হবে। ('+c.w0src+')</div>'
+   :'<div class="hint">ওজনের তথ্য নেই — বিক্রি বা ওজন নমুনা দিন</div>')+'</div>';
+ }else if(k===5){
+  let aw=c.aw>0?c.aw:c.w0,r=lcP5(c);
+  h=inP+'<label class="lc-in">খামারের মুরগির গড় ওজন (কেজি)<input id="lcAw" type="number" min="0" step=".01" inputmode="decimal" value="'+(+aw.toFixed(2))+'" oninput="lcSet()"></label><div id="lcRes">'+(r?
+   lcRow("এ পর্যন্ত আয়",money(c.inc))+lcRow("বাকি "+fb(c.live,0)+" টি বেচলে",money(r.rev))+lcRow("মোট আয় হবে",money(r.tot))+lcRow("সর্বমোট খরচ",money(c.cost))+
+   '<div class="lc-big'+(r.net>=0?'':' bad')+'"><span>'+(r.net>=0?'নিট লাভ':'নিট ক্ষতি')+'</span><b>৳'+fb(Math.abs(r.net),0)+'</b></div>'+
+   lcRow("প্রতি জীবিত মুরগিতে",(r.per>=0?"লাভ ৳":"ক্ষতি ৳")+fb(Math.abs(r.per),2))
+   :'<div class="hint">উপরে দর লিখুন</div>')+'</div>';
+ }else h='';
+ return h;
+}
+window.openLc=function(k){
+ window._lcK=k;let m=$a("lcModal");if(!m)return;
+ $a("lcTitle").textContent=({1:"🎯 খরচ তুলতে মোট কেজি",2:"⚖️ জীবিত মুরগির মোট ওজন",3:"🐔 প্রতি মুরগি কত কেজি হলে আসল",4:"🏷️ লাভ হতে সর্বনিম্ন দর",5:"📊 এই দরে বেচলে লাভ/ক্ষতি"})[k];
+ $a("lcBody").innerHTML=lcBody();m.classList.add("show");
+};
+window.closeLc=function(){let m=$a("lcModal");if(m)m.classList.remove("show");try{render()}catch(e){console.error(e)}};
+window.lcSet=function(){
+ let p=$a("lcPrice"),w=$a("lcAw");
+ if(p)state.projRate=+p.value>0?+p.value:0;
+ if(w)state.liveAvgWt=+w.value>0?+w.value:0;
+ save();let r=$a("lcRes"),keep=document.activeElement&&document.activeElement.id;
+ if(window._lcK===2){let c=lcCalc(),aw=c.aw>0?c.aw:c.w0,e=$a("lcR2");if(e)e.textContent=fb(c.alive*aw,0)+" কেজি"}
+ else if(r){let t=document.createElement("div");t.innerHTML=lcBody();let n=t.querySelector("#lcRes");if(n)r.innerHTML=n.innerHTML}
+ renderLcTiles();
+};
 
 // ── অতিরিক্ত গোল গ্রাফ ──
 function gaugeSvg(pct,col,big,small,bandsGood){
@@ -1985,7 +2080,7 @@ function renderDashExtra(){
 function renderAnalysis(){
  if(!$a("anStock"))return;
  try{renderProfit();renderGoals();renderFeedCmp();renderMort();renderFcrProj()}catch(e){console.error(e)}
- try{renderAnTop();renderAnCmp();renderAnGraphs();anFoldApply()}catch(e){console.error(e)}
+ try{renderAnTop();renderAnCmp();anFoldApply()}catch(e){console.error(e)}
  let b=$a("anBagKg");if(b&&document.activeElement!==b)b.value=bagKg();
  let fk=$a("anFeedKg");if(fk&&document.activeElement!==fk)fk.value=+state.feedKgPrice||"";
  let d=$a("anWDate");if(d&&!d.value)d.value=todayISO();
@@ -2279,7 +2374,7 @@ window.renderFarmDoc=function(){
   '<div class="fdoc-n">বয়স '+bn(r.age)+' দিন • রোস জাত, সিপি ফিডের স্ট্যান্ডার্ড ধরে হিসাব। এটা আগাম ইশারা, নিশ্চিত রোগ নির্ণয় নয়। ২৪ ঘণ্টায় না কমলে ডাক্তার দেখান।</div></div>';
 };
 {const _r=window.render;window.render=function(){let r=_r.apply(this,arguments);try{renderFarmDoc()}catch(e){console.error(e)}return r}}
-window.APP_VERSION="v30";
+window.APP_VERSION="v34";
 (function(){const d=document.getElementById("dashboard");if(d&&!document.getElementById("appVer")){const e=document.createElement("div");e.id="appVer";e.style.cssText="text-align:center;font-size:11px;color:#6f8794;margin:22px 0 8px";e.innerHTML='নাজমুল পোল্ট্রি ফার্ম • সংস্করণ '+window.APP_VERSION+'<br><button type="button" id="appUpd" style="margin-top:8px;border:1px solid #ffffff30;background:#ffffff10;color:#cfe9dc;border-radius:10px;padding:7px 14px;font:inherit;font-size:12px;cursor:pointer">🔄 নতুন সংস্করণ লোড করুন (ডেটা মুছবে না)</button>';d.appendChild(e);
  document.getElementById("appUpd").onclick=async function(){try{this.textContent="⏳ আপডেট হচ্ছে...";if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}}catch(_){}location.reload()}}})();
 /* কোনো কোড-ত্রুটি হলে আর চুপচাপ ব্যর্থ নয় — পর্দায় দেখাবে */
@@ -2350,34 +2445,12 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.s
   if(f.fcr)h+=verdict(f.fcr,f.tg);
   out.innerHTML=h;
  }
- window.fcManual=function(){
-  const out=el("fmOut");if(!out)return;
-  const g=id=>+el(id).value||0;
-  const feed=g("fmFeed"),birds=Math.round(g("fmBirds")),avg=g("fmAvg"),tg=g("fmTarget");
-  let tw=g("fmWeight"),src="";
-  if(tw>0)src="আপনার দেওয়া মোট ওজন";else if(birds>0&&avg>0){tw=birds*avg;src=bnx(birds)+" টি × "+f1(avg,3)+" কেজি"}
-  if(!(feed>0)||!(tw>0)){out.innerHTML='<div class="an-note">মোট ফিড আর (মোট ওজন, অথবা মুরগির সংখ্যা ও গড় ওজন) বসান।</div>';return}
-  const fcr=feed/tw;
-  let h='<div class="pgsum">'+card("🍽️","মোট ফিড",f1(feed)+" কেজি","#fbbf24")+card("📦","মোট ওজন",f1(tw)+" কেজি")+card("📊","FCR",f1(fcr,2),tg>0?(fcr<=tg?"#3ddc84":"#ff7070"):"");
-  if(tg>0){const need=feed/tg;h+=card("🎯","টার্গেট FCR",f1(tg,2))+card("⚖️","ফিড অনুযায়ী দরকারি ওজন",f1(need)+" কেজি","#70b8ff")+card("🧮","এই ওজনে ফিড লাগত",f1(tw*tg)+" কেজি");if(birds>0)h+=card("🐔","দরকারি গড়/মুরগি",f1(need/birds,2)+" কেজি","#70b8ff")}
-  h+='</div><div style="font-size:11.5px;color:#7a9aaa;margin-top:8px;line-height:1.7">হিসাব: '+f1(feed)+' ÷ '+f1(tw)+(src?' ('+src+')':'')+' = <b style="color:#e8edf2">'+f1(fcr,2)+'</b></div>';
-  if(tg>0)h+=verdict(fcr,tg);
-  out.innerHTML=h;
- };
- window.fcFill=function(){
-  const f=fcrStats();
-  el("fmFeed").value=f.feed?Math.round(f.feed*100)/100:"";
-  el("fmWeight").value=f.tw?Math.round(f.tw*100)/100:"";
-  el("fmBirds").value=f.birds||"";el("fmAvg").value="";
-  el("fmTarget").value=f.tg||1.6;fcManual();
- };
- window.fcClear=function(){["fmFeed","fmWeight","fmBirds","fmAvg"].forEach(i=>el(i).value="");el("fmTarget").value=1.6;fcManual()};
  function renderFcrPage(){
   if(!el("fcTarget"))return;
   const a=document.activeElement;
   if(a!==el("fcTarget"))el("fcTarget").value=+state.targetFCR||1.6;
   if(a!==el("fcLive"))el("fcLive").value=+state.liveAvgWt||"";
-  fcAuto();fcManual();
+  fcAuto();
  }
  renderFcrPage();
  const _r=window.render;window.render=function(){let r=_r.apply(this,arguments);try{renderFcrPage()}catch(e){console.error(e)}return r};
